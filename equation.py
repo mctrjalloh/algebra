@@ -19,6 +19,42 @@
 #     return sol
 
 
+def develope(s):
+    pass
+
+
+def factorize(s):
+    pass
+
+
+def substitute(s, unknown='x', value=0):
+    pass
+
+
+def reduce(s, level=1):
+    def reduce_left(s):
+        if isinstance(s.left, Number):
+            s = reduce_right(s)
+        else:
+            s.left = reduce_left(s.left)
+        return s
+
+    def reduce_right(s):
+        if isinstance(s.right, Number):
+            return s.value
+        else:
+            s.right = reduce_right(s.right)
+            return s
+
+    if level == 0:
+        return s
+    elif isinstance(s, Number):
+        s = s.value
+    else:
+        s = reduce_left(s)
+    return reduce(s, level-1)
+
+
 """General Object"""
 
 
