@@ -19,8 +19,8 @@
 #     return sol
 
 
-def develope(s):
-    pass
+def develope(s, level=1):
+    return s.develope(level)[0]
 
 
 def factorize(s):
@@ -33,14 +33,14 @@ def substitute(s, unknown='x', value=0):
 
 def reduce(s, level=1):
     def reduce_left(s):
-        if isinstance(s.left, Number):
+        if s.left.isNum():
             s = reduce_right(s)
         else:
             s.left = reduce_left(s.left)
         return s
 
     def reduce_right(s):
-        if isinstance(s.right, Number):
+        if s.right.isNum():
             return s.value
         else:
             s.right = reduce_right(s.right)
@@ -48,7 +48,7 @@ def reduce(s, level=1):
 
     if level == 0:
         return s
-    elif isinstance(s, Number):
+    elif s.isNum():
         s = s.value
     else:
         s = reduce_left(s)
@@ -66,6 +66,9 @@ class Object(object):
     def value(self):
         return self
 
+    def develope(self, level):
+        return self, level
+
     def __eq__(self, other):
         return self.obj == other.obj
 
@@ -82,14 +85,22 @@ class Object(object):
         return Mul(self, other)
 
     def __truediv__(self, other):
-        if isinstance(other, int):
-            other = Number(other)
-        return Div(self, other)
+        return Div(self, other, op=' / ')
 
     def __floordiv__(self, other):
-        if isinstance(other, int):
-            other = Number(other)
         return Div(self, other, op=' // ')
+
+    def __pow__(self, other):
+        return Pow(self, other)
+
+    def isAdd(self):
+        return False
+
+    def isMul(self):
+        return False
+
+    def isNum(self):
+        return False
 
 
 """Litterals"""
@@ -99,21 +110,22 @@ class Litteral(Object):
     pass
 
 
-class Number(Object):
-    pass
+class Num(Object):
+    def isNum(self):
+        return True
 
 
-"""Operations"""
+"""Operators"""
 
 
-class Operation(Object):
-    """Abstract class reprenting an operator"""
+class Operator(Object):
+    """Abstract class representing an operator"""
 
     def __init__(self, left, right, op=None):
         if isinstance(right, int):
-            right = Number(right)
+            right = Num(right)
         if isinstance(left, int):
-            left = Number(left)
+            left = Num(left)
         self.left = left
         self.right = right
         self.op = op
@@ -123,67 +135,98 @@ class Operation(Object):
 
     @property
     def value(self):
-        return Number(eval(str(self)))
+        return Num(eval(str(self)))
 
     def __eq__(self, other):
         if isinstance(other, int):
-            other = Number(other)
-        return str(self.left) == str(other.left) and \
-            str(self.right) == str(other.right)
+            other = Num(other)
+        return self.value == other.value
 
 
-class Add(Operation):
-    def __init__(self, left, right):
-        super(Add, self).__init__(left, right, op=' + ')
+class Add(Operator):
+    def __init__(self, left, right, op=' + '):
+        super(Add, self).__init__(left, right, op)
 
+    def isAdd(self):
+        return True
 
-class Mul(Operation):
-    def __init__(self, left, right):
-        super(Mul, self).__init__(left, right, op=' * ')
+    def develope(self, level):
+        self.left, level = self.left.develope(level)
+        self.right, level = self.right.develope(level)
+        return self, level
 
     def __str__(self):
-        if isinstance(self.left, Add) and isinstance(self.right, Add):
-            return '(' + str(self.left) + ')' + self.op + \
-                '(' + str(self.right) + ')'
-        elif isinstance(self.left, Add):
-            return '(' + str(self.left) + ')' + self.op + str(self.right)
-        elif isinstance(self.right, Add):
+        if self.op == ' - ' and self.right.isAdd():
             return str(self.left) + self.op + '(' + str(self.right) + ')'
         else:
             return super().__str__()
 
 
-class Sub(Operation):
+class Mul(Operator):
+    def __init__(self, left, right, op=' * '):
+        super(Mul, self).__init__(left, right, op)
+
+    def isMul(self):
+        return True
+
+    def develope(self, level):
+        if level == 0:
+            return self, level
+        elif self.left.isNum() and self.right.isNum():
+            return self, level
+        elif self.left.isAdd():
+            self.left.left *= self.right
+            self.left.right *= self.right
+            self = self.left
+            return self, level-1
+        elif self.right.isAdd():
+            self.right.left *= self.left
+            self.right.right *= self.left
+            self = self.right
+            return self, level-1
+        else:
+            self.left, level = self.left.develope(level)
+            self.right, level = self.right.develope(level)
+            self, level = self.develope(level)
+            return self, level
+
+    def __str__(self):
+        if self.left.isAdd() and self.right.isAdd():
+            return '(' + str(self.left) + ')' + self.op + \
+                '(' + str(self.right) + ')'
+        elif self.left.isAdd():
+            return '(' + str(self.left) + ')' + self.op + str(self.right)
+        elif self.right.isAdd():
+            return str(self.left) + self.op + '(' + str(self.right) + ')'
+        else:
+            return super().__str__()
+
+
+class Sub(Add):
     def __init__(self, left, right):
         super(Sub, self).__init__(left, right, op=' - ')
 
     def __str__(self):
-        if isinstance(self.right, Add):
+        if self.right.isAdd():
             return str(self.left) + self.op + '(' + str(self.right) + ')'
         else:
             return super().__str__()
 
 
-class Div(Operation):
+class Div(Mul):
+    def __init__(self, left, right, op):
+        super(Div, self).__init__(left, right, op)
+
+
+class Pow(Operator):
     def __init__(self, left, right):
-        super(Div, self).__init__(left, right, op=' / ')
-
-    def __str__(self):
-        if isinstance(self.left, Add) and isinstance(self.right, Add):
-            return '(' + str(self.left) + ')' + self.op + \
-                '(' + str(self.right) + ')'
-        elif isinstance(self.left, Add):
-            return '(' + str(self.left) + ')' + self.op + str(self.right)
-        elif isinstance(self.right, Add):
-            return str(self.left) + self.op + '(' + str(self.right) + ')'
-        else:
-            return super().__str__()
+        super(Pow, self).__init__(left, right, op='**')
 
 
 """Equations"""
 
 
-class Equation(Operation):  # Maybe Equation is just an Operation with op=' = '
+class Equation(Operator):  # Maybe Equation is just an Operator with op=' = '
     def __init__(self, left, right):
         super(Equation, self).__init__(left, right, op=' = ')
 
