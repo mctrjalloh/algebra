@@ -32,27 +32,7 @@ def substitute(s, unknown='x', value=0):
 
 
 def reduce(s, level=1):
-    def reduce_left(s):
-        if s.left.isNum():
-            s = reduce_right(s)
-        else:
-            s.left = reduce_left(s.left)
-        return s
-
-    def reduce_right(s):
-        if s.right.isNum():
-            return s.value
-        else:
-            s.right = reduce_right(s.right)
-            return s
-
-    if level == 0:
-        return s
-    elif s.isNum():
-        s = s.value
-    else:
-        s = reduce_left(s)
-    return reduce(s, level-1)
+    return s.reduce(level)[0]
 
 
 """General Object"""
@@ -65,6 +45,9 @@ class Object(object):
     @property
     def value(self):
         return self
+
+    def reduce(self, level):
+        return self, level
 
     def develope(self, level):
         return self, level
@@ -136,6 +119,17 @@ class Operator(Object):
     @property
     def value(self):
         return Num(eval(str(self)))
+
+    def reduce(self, level):
+        if level == 0:
+            return self, level
+        elif self.left.isNum() and self.right.isNum():
+            return self.value, level-1
+        else:
+            self.left, level = self.left.reduce(level)
+            self.right, level = self.right.reduce(level)
+            self, level = self.reduce(level)
+            return self, level
 
     def __eq__(self, other):
         if isinstance(other, int):
