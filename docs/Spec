@@ -1,0 +1,17 @@
+Problem: solving polynomial equations: e.g: 2x + 3 = 0
+Solution:
+    Action: multiply 2 by 1
+    Observation : (2, 3)
+    Reward: 2 + 3 = 6 => r = -6
+
+    Action: multiply 2 by random number (let's say -2)
+    Observation: (2*-2, 3) = (-4, 3)
+    Reward: -4 + 3 = -1 => r = -1
+
+    ...
+    ...
+    ...
+
+    Action: multiply 2 by -1.5
+    Observation: (-3, 3)
+    Reward: -3 + 3 = 0 => r = 0
