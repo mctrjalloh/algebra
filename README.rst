@@ -1,12 +1,23 @@
-Sample Module Repository
+Symbolic Algebraic Calculator in Python
 ========================
 
-This simple project is an example repo for Python projects.
+This project is about solving algebraic expressions step by step as we do in math school class, but automatically!
 
-`Learn more <http://www.kennethreitz.org/essays/repository-structure-and-python>`_.
+e.g. what if you write:
 
----------------
+2*(3 + 4)
 
-If you want to learn more about ``setup.py`` files, check out `this repository <https://github.com/kennethreitz/setup.py>`_.
+and then ask the software to reduce this expression, step by step..
+it would do this:
+
+2*(3 + 4)
+2 * 7
+14
+
+you get the idea.
+
+It also let you do many other operations like: develope, factorize, etc
+
+Contribute!!
 
 ✨🍰✨
