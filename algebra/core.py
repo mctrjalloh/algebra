@@ -23,8 +23,8 @@ def develope(s, level=1):
     return s.develope(level)[0]
 
 
-def factorize(s):
-    pass
+def factorize(s, level=1):
+    return s.factorize(level)[0]
 
 
 def substitute(s, unknown='x', value=0):
@@ -32,31 +32,18 @@ def substitute(s, unknown='x', value=0):
 
 
 def reduce(s, level=1):
-    return s.reduce(level)[0]
+    if level == 'max':
+        while not s.isNum():
+            s = s.reduce(level=1)[0]
+        return s
+    else:
+        return s.reduce(level)[0]
 
 
 """General Object"""
 
 
 class Object(object):
-    def __init__(self, obj):
-        self.obj = obj
-
-    @property
-    def value(self):
-        return self
-
-    def reduce(self, level):
-        return self, level
-
-    def develope(self, level):
-        return self, level
-
-    def __eq__(self, other):
-        return self.obj == other.obj
-
-    def __str__(self):
-        return str(self.obj)
 
     def __add__(self, other):
         return Add(self, other)
@@ -76,6 +63,9 @@ class Object(object):
     def __pow__(self, other):
         return Pow(self, other)
 
+    def isOperator(self):
+        return False
+
     def isAdd(self):
         return False
 
@@ -83,6 +73,12 @@ class Object(object):
         return False
 
     def isNum(self):
+        return False
+
+    def isZero(self):
+        return False
+
+    def isOne(self):
         return False
 
 
@@ -94,8 +90,41 @@ class Litteral(Object):
 
 
 class Num(Object):
+    def __init__(self, num):
+        self.num = num
+
+    @property
+    def value(self):
+        return self.num
+
+    def factorize(self, level):
+        return self, level
+
+    def reduce(self, level):
+        return self, level
+
+    def develope(self, level):
+        return self, level
+
     def isNum(self):
         return True
+
+    def isZero(self):
+        return self.num == 0
+
+    def isOne(self):
+        return self.num == 1
+
+    def __eq__(self, other):
+        if isinstance(other, int):
+            other = Num(other)
+        if not other.isNum():
+            return False
+        else:
+            return self.num == other.num
+
+    def __str__(self):
+        return str(self.num)
 
 
 """Operators"""
@@ -113,18 +142,17 @@ class Operator(Object):
         self.right = right
         self.op = op
 
+    def isOperator(self):
+        return True
+
     def __str__(self):
         return str(self.left) + str(self.op) + str(self.right)
-
-    @property
-    def value(self):
-        return Num(eval(str(self)))
 
     def reduce(self, level):
         if level == 0:
             return self, level
         elif self.left.isNum() and self.right.isNum():
-            return self.value, level-1
+            return Num(self.value), level-1
         else:
             self.left, level = self.left.reduce(level)
             self.right, level = self.right.reduce(level)
@@ -132,9 +160,11 @@ class Operator(Object):
             return self, level
 
     def __eq__(self, other):
-        if isinstance(other, int):
-            other = Num(other)
-        return self.value == other.value
+        if not other.isOperator():
+            return False
+        else:
+            return self.op == other.op and self.left == other.left and self.right == other.right\
+                or self.op == other.op and self.left == other.right and self.right == other.left
 
 
 class Add(Operator):
@@ -143,6 +173,10 @@ class Add(Operator):
 
     def isAdd(self):
         return True
+
+    @property
+    def value(self):
+        return self.left.value + self.right.value
 
     def develope(self, level):
         self.left, level = self.left.develope(level)
@@ -162,6 +196,15 @@ class Mul(Operator):
 
     def isMul(self):
         return True
+
+    @property
+    def value(self):
+        return self.left.value * self.right.value
+
+    def factorize(self, level):
+        self.left, level = self.left.factorize(level)
+        self.right, level = self.right.factorize(level)
+        return self, level
 
     def develope(self, level):
         if level == 0:
@@ -200,6 +243,10 @@ class Sub(Add):
     def __init__(self, left, right):
         super(Sub, self).__init__(left, right, op=' - ')
 
+    @property
+    def value(self):
+        return self.left.value - self.right.value
+
     def __str__(self):
         if self.right.isAdd():
             return str(self.left) + self.op + '(' + str(self.right) + ')'
@@ -211,34 +258,20 @@ class Div(Mul):
     def __init__(self, left, right, op):
         super(Div, self).__init__(left, right, op)
 
+    @property
+    def value(self):
+        return self.left.value / self.right.value
+
+
+class FloorDiv(Mul):
+    def __init__(self, left, right, op):
+        super(FloorDiv, self).__init__(left, right, op)
+
+    @property
+    def value(self):
+        return self.left.value // self.right.value
+
 
 class Pow(Operator):
     def __init__(self, left, right):
         super(Pow, self).__init__(left, right, op='**')
-
-
-"""Equations"""
-
-
-class Equation(Operator):  # Maybe Equation is just an Operator with op=' = '
-    def __init__(self, left, right):
-        super(Equation, self).__init__(left, right, op=' = ')
-
-    @property
-    def value(self):
-        return self.left == self.right
-
-
-class BasicEquation(Equation):
-    """Represents a basic equation: x = b"""
-
-    def __init__(self, left, right):
-        super(BasicEquation, self).__init__()
-
-
-class TermEquation(Equation):
-    """Represents Equation x + a = b
-    """
-
-    def __init__(self, left, right):
-        super(TermEquation, self).__init__(left, right)
