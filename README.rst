@@ -11,8 +11,8 @@ and then ask the software to reduce this expression, step by step..
 it would do this:
 
 2*(3 + 4)
-2 * 7
-14
+ = 2 * 7
+ = 14
 
 you get the idea.
 
