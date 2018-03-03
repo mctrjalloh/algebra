@@ -98,6 +98,11 @@ class Num(Object):
         return self.num
 
     def factorize(self, level):
+        if level == 0:
+            return self, 0
+        for i in range(2, self.num):
+            if self.num % i == 0:
+                return Mul(i, self.num//i).factorize(level-1)  # .reduce(level-1)
         return self, level
 
     def reduce(self, level):
@@ -116,15 +121,18 @@ class Num(Object):
         return self.num == 1
 
     def __eq__(self, other):
-        if isinstance(other, int):
-            other = Num(other)
-        if not other.isNum():
-            return False
+        if isinstance(other, int) or isinstance(other, float):
+            return self.num == other
+        elif other.isNum():
+            return self.value == other.value
         else:
-            return self.num == other.num
+            return False
 
     def __str__(self):
         return str(self.num)
+
+    def __repr__(self):
+        return str(self)  # 'Num({})'.format(self.num)
 
 
 """Operators"""
@@ -134,9 +142,9 @@ class Operator(Object):
     """Abstract class representing an operator"""
 
     def __init__(self, left, right, op=None):
-        if isinstance(right, int):
+        if isinstance(right, int) or isinstance(right, float):
             right = Num(right)
-        if isinstance(left, int):
+        if isinstance(left, int) or isinstance(left, float):
             left = Num(left)
         self.left = left
         self.right = right
@@ -179,6 +187,8 @@ class Add(Operator):
         return self.left.value + self.right.value
 
     def develope(self, level):
+        if level == 0:
+            return self, 0
         self.left, level = self.left.develope(level)
         self.right, level = self.right.develope(level)
         return self, level
@@ -188,6 +198,9 @@ class Add(Operator):
             return str(self.left) + self.op + '(' + str(self.right) + ')'
         else:
             return super(Add, self).__str__()
+
+    def __repr__(self):
+        return 'Add({}, {})'.format(repr(self.left), repr(self.right))
 
 
 class Mul(Operator):
@@ -202,30 +215,29 @@ class Mul(Operator):
         return self.left.value * self.right.value
 
     def factorize(self, level):
+        if level == 0:
+            return self, 0
         self.left, level = self.left.factorize(level)
         self.right, level = self.right.factorize(level)
         return self, level
 
     def develope(self, level):
         if level == 0:
-            return self, level
+            return self, 0
         elif self.left.isNum() and self.right.isNum():
             return self, level
         elif self.left.isAdd():
             self.left.left *= self.right
             self.left.right *= self.right
-            self = self.left
-            return self, level-1
+            return self.left, level-1
         elif self.right.isAdd():
             self.right.left *= self.left
             self.right.right *= self.left
-            self = self.right
-            return self, level-1
+            return self.right, level-1
         else:
             self.left, level = self.left.develope(level)
             self.right, level = self.right.develope(level)
-            self, level = self.develope(level)
-            return self, level
+            return self.develope(level)
 
     def __str__(self):
         if self.left.isAdd() and self.right.isAdd():
@@ -237,6 +249,9 @@ class Mul(Operator):
             return str(self.left) + self.op + '(' + str(self.right) + ')'
         else:
             return super(Mul, self).__str__()
+
+    def __repr__(self):
+        return 'Mul({}, {})'.format(repr(self.left), repr(self.right))
 
 
 class Sub(Add):
@@ -253,18 +268,34 @@ class Sub(Add):
         else:
             return super(Sub, self).__str__()
 
+    def __repr__(self):
+        return 'Sub({}, {})'.format(repr(self.left), repr(self.right))
+
 
 class Div(Mul):
-    def __init__(self, left, right, op):
+    def __init__(self, left, right, op=' / '):
         super(Div, self).__init__(left, right, op)
 
     @property
     def value(self):
         return self.left.value / self.right.value
 
+    def __repr__(self):
+        return 'Div({}, {})'.format(repr(self.left), repr(self.right))
+
+    # def reduce(self, level):
+    #     if self.left.isNum():
+    #         self.left, level = self.left.factorize(level-1)
+    #     if self.right.isNum():
+    #         self.right, level = self.right.factorize(level-1)
+    #     if self.left.isPrime():
+    #         return self, level
+    #     if self.left == self.right:
+    #         return Num(1), level-1
+
 
 class FloorDiv(Mul):
-    def __init__(self, left, right, op):
+    def __init__(self, left, right, op=' // '):
         super(FloorDiv, self).__init__(left, right, op)
 
     @property

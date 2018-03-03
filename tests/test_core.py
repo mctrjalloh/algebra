@@ -1,6 +1,6 @@
 import unittest
 
-from context import Num, Add, Mul, reduce, develope, factorize
+from context import Num, Add, Mul, Div, reduce, develope, factorize
 
 
 class TestObject(unittest.TestCase):
@@ -37,6 +37,10 @@ class TestNum(unittest.TestCase):
     def test_str(self):
         self.assertEqual(str(self.num1), '2')
 
+    def test_repr(self):
+        self.assertEqual(repr(Num(2)), '2')
+        self.assertEqual(repr(Num(5)), '5')
+
     def test_eq(self):
         self.assertTrue(Num(2) == self.num1)
         self.assertFalse(Num(2) == self.num2)
@@ -61,6 +65,10 @@ class TestNum(unittest.TestCase):
 
 class TestMul(unittest.TestCase):
 
+    def test_(self):
+        self.assertEqual(Mul(2, 3), Mul(3, 2))
+        self.assertEqual(Mul(2, Div(4, 2)), Mul(Div(4, 2), 2))
+
     def test_value(self):
         self.assertEqual(Mul(2, 3).value, 6)
         self.assertEqual(Mul(-2, 4).value, -8)
@@ -75,6 +83,10 @@ class TestMul(unittest.TestCase):
         self.assertEqual(str(Mul(Add(2, 3), Num(3))), '(2 + 3) * 3')
         self.assertEqual(str(Mul(Add(2, 3), Add(3, 4))), '(2 + 3) * (3 + 4)')
 
+    def test_repr(self):
+        self.assertEqual(repr(Mul(2, 3)), 'Mul(2, 3)')
+        self.assertEqual(repr(Mul(Add(2, 3), Num(4))), 'Mul(Add(2, 3), 4)')
+
     def test_eq(self):
         self.assertTrue(Mul(2, 3) == Mul(2, 3))
         self.assertTrue(Mul(2, 3) == Mul(3, 2))
@@ -83,6 +95,7 @@ class TestMul(unittest.TestCase):
         self.assertFalse(Mul(2, 3) == Num(3))
         self.assertFalse(Mul(2, 3) == Mul(2, 5))
         self.assertFalse(Mul(2, 3) == Add(2, 3))
+        self.assertTrue(Num(2)*Num(2)*Num(3) == Num(2)*Num(2)*Num(3))
 
     def test_add(self):
         self.assertEqual(Mul(2, 3) * Num(6), Mul(Mul(2, 3), Num(6)))
@@ -143,6 +156,9 @@ class TestReduce(unittest.TestCase):
         self.assertEqual(reduce(Num(2)*Num(3) + Num(3) * Num(4), level=3), Num(18))
         self.assertEqual(reduce(Num(2)*Num(3) + Num(3) * Num(4), level='max'), Num(18))
 
+        # self.assertEqual(reduce(Div(4, 2)), Num(2))
+        # self.assertEqual(reduce(Div(12, 8), Div(3, 2)))
+
 
 class TestDevelope(unittest.TestCase):
     def setUp(self):
@@ -166,6 +182,7 @@ class TestDevelope(unittest.TestCase):
                          '3 * 2 - 2 * 2 + 3 * 5 - 1 * 5')
         self.assertEqual(str(develope((Num(3) - 2)*2 + Num(5)*(Num(3) - 1), level=3)),
                          '3 * 2 - 2 * 2 + 3 * 5 - 1 * 5')
+        # self.assertEqual(develope(Mul(2, 2) * 3), Mul(2, 2) * 3)
 
 
 class TestFactorize(unittest.TestCase):
@@ -176,9 +193,16 @@ class TestFactorize(unittest.TestCase):
     def test_factorize(self):
         self.assertEqual(factorize(Num(2)), Num(2))
         self.assertEqual(factorize(Num(2) * Num(3)), Mul(2, 3))
-        self.assertEqual(factorize(Num(2) * Num(3) * Num(4)), Mul(2, 3) * Num(4))
-        self.assertEqual(factorize(Num(2) * Num(3) * Num(4), level=4), Mul(2, 3) * Num(4))
-        # self.assertEqual(factorize(Num(4)), Mul(2, 2))
+        self.assertEqual(factorize(Num(4)), Mul(2, 2))
+        self.assertEqual(factorize(Num(2) * Num(3) * Num(4)), Mul(2, 3) * Mul(2, 2))
+        self.assertEqual(factorize(Num(2) * Num(3) * Num(4), level=0), Mul(2, 3) * Num(4))
+        self.assertEqual(str(factorize(Num(2) * Num(3) * Num(4), level=4)),
+                         str(Mul(2, 3) * Mul(2, 2)))
+        self.assertEqual(factorize(Num(12), level=1), Num(2)*Num(6))
+        print(repr(Num(2)*Num(2)*Num(3)))
+        # print(repr(develope(factorize(Num(12), level=2))))
+        # self.assertEqual(factorize(Num(12), level=2), Num(2)*Num(2)*Num(3))
+
         # self.assertEqual(str(factorize(Num(2) + Num(2))), '2*(1 + 1)')
         # self.assertEqual(str(factorize(Num(2) + Num(4))), '2*(1 + 2)')
 
